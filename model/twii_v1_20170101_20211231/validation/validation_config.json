@@ -1,0 +1,42 @@
+{
+  "model_dir": "model\\twii_v1_20170101_20211231",
+  "validation_dir": "model\\twii_v1_20170101_20211231\\validation",
+  "validation_start_date": 20220101,
+  "validation_end_date": 20221231,
+  "data_start_date": 20160102,
+  "data_end_date": 20211231,
+  "field_names": [
+    "close",
+    "change"
+  ],
+  "selected_markets": [
+    "TWII",
+    "S&P_500",
+    "Dow_Jones",
+    "NASDAQ",
+    "PHLX",
+    "N225",
+    "FTSE",
+    "FCHI",
+    "DAX",
+    "000001.SS"
+  ],
+  "tcn_window": 256,
+  "layer_channels": [
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12
+  ],
+  "kernel_size": 3,
+  "sliding_window": 60,
+  "const": 0.0,
+  "fee_rate": 0.0005,
+  "slippage_rate": 0.0005,
+  "reward_scale": 100.0,
+  "selection_metric": "sharpe",
+  "device": "cuda"
+}
