@@ -1,0 +1,89 @@
+{
+  "model_dir": "model\\twii_v1_20170101_20211231",
+  "validation_dir": "model\\twii_v1_20170101_20211231\\validation",
+  "validation_start_date": 20220101,
+  "validation_end_date": 20221231,
+  "data_start_date": 20160102,
+  "data_end_date": 20211231,
+  "field_names": [
+    "close",
+    "change"
+  ],
+  "selected_markets": [
+    "TWII",
+    "S&P_500",
+    "Dow_Jones",
+    "NASDAQ",
+    "PHLX",
+    "N225",
+    "FTSE",
+    "FCHI",
+    "DAX",
+    "000001.SS"
+  ],
+  "selection_metric": "sharpe",
+  "selected_checkpoint": 1,
+  "selected_checkpoint_path": "model\\twii_v1_20170101_20211231\\model1.pt",
+  "selected_summary": {
+    "checkpoint": 1,
+    "total_reward": 0.0,
+    "mean_daily_reward": 0.0,
+    "std_daily_reward": 0.0,
+    "sharpe": 0.0,
+    "cagr": 0.0,
+    "max_drawdown": 0.0,
+    "turnover": 0.0
+  },
+  "top_ranked_checkpoints": [
+    {
+      "checkpoint": 1,
+      "total_reward": 0.0,
+      "mean_daily_reward": 0.0,
+      "std_daily_reward": 0.0,
+      "sharpe": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "turnover": 0.0
+    },
+    {
+      "checkpoint": 2,
+      "total_reward": 0.0,
+      "mean_daily_reward": 0.0,
+      "std_daily_reward": 0.0,
+      "sharpe": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "turnover": 0.0
+    },
+    {
+      "checkpoint": 3,
+      "total_reward": 0.0,
+      "mean_daily_reward": 0.0,
+      "std_daily_reward": 0.0,
+      "sharpe": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "turnover": 0.0
+    },
+    {
+      "checkpoint": 4,
+      "total_reward": 0.0,
+      "mean_daily_reward": 0.0,
+      "std_daily_reward": 0.0,
+      "sharpe": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "turnover": 0.0
+    },
+    {
+      "checkpoint": 5,
+      "total_reward": 0.0,
+      "mean_daily_reward": 0.0,
+      "std_daily_reward": 0.0,
+      "sharpe": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "turnover": 0.0
+    }
+  ]
+}

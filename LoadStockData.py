@@ -12,9 +12,10 @@ class LoadStockData:
         
         # set the number of stock and the maximal number of stocks
         self.no_stock = 1  # number of stock
-        self.max_no_stock = 10  # maximal number of stocks
+        self.max_no_stock = 10  # initial capacity
 
-        field, date, all_price = LoadStockData.LoadCSVData(filename)
+        csv_fields, date, all_price = LoadStockData.LoadCSVData(filename)
+        field_indices = self._get_field_indices(csv_fields)
 
         # find the index of the start_date and end_date
         start_index = np.argwhere(date >= time_period[0])[0, 0]
@@ -28,10 +29,7 @@ class LoadStockData:
         # collect the prices
         self.prices = np.zeros((len(self.dates), len(self.fields), self.max_no_stock), np.float32)
         # get the prices we need with field
-        
-        for idx, field in enumerate(self.fields):
-            field_idx = self.fields.index(field)
-            self.prices[:, idx, 0] = all_price[start_index : end_index + 1, field_idx]
+        self.prices[:, :, 0] = all_price[start_index : end_index + 1, field_indices]
             
 
     def AddNewData(self, stock_names, filenames):
@@ -42,37 +40,20 @@ class LoadStockData:
 
         for name, file in zip(stock_names, filenames):
             print(f"> adding stock market: {name} ")
+            self._ensure_capacity(self.no_stock + 1)
 
             # load the data from file by invoking the LoadCSVData() to load the stock data
             fields, dates, prices = LoadStockData.LoadCSVData(file)
 
-            # find the index of the start_date and end_date
-            start_index = np.argwhere(dates >= self.dates[0])[0, 0]
-            end_index = np.argwhere(dates <= self.dates[-1])[-1, 0]
-
-            # clip the date and prices intervals
-            dates = dates[start_index : end_index + 1]
-            prices = prices[start_index : end_index + 1]
-
             # get the field indices in fields
-            indices = [fields.index(field) for field in self.fields if field in fields]
-
-            if len(indices) != len(self.fields):
-                raise Exception("StockMarket.append(): missing fields")
+            indices = self._get_field_indices(fields)
 
             # select the data in the desired fields
-            selected_prices = np.zeros((len(dates), len(indices)))
-
-            for idx in range(len(indices)):
-                selected_prices[:, idx] = prices[:, indices[idx]]
+            selected_prices = prices[:, indices]
+            aligned_prices = self._align_prices_to_dates(dates, selected_prices, name)
 
             # append the selected prices to self.prices
-            for idx in range(len(self.dates)):
-                # find the appended_idx that dates[appended_idx] <= self.dates[idx]
-                appended_idx = np.argwhere(dates <= self.dates[idx])[-1, 0]
-                # print(appended_idx)
-                # append the data
-                self.prices[idx, :, self.no_stock] = selected_prices[appended_idx]
+            self.prices[:, :, self.no_stock] = aligned_prices
 
             # append the stock names
             self.stock_name.append(name)
@@ -96,14 +77,8 @@ class LoadStockData:
         dates = self.dates[start_idx : end_idx + 1]
 
         # get the field indices in self.fields and self.stock_names
-        field_indices = [
-            self.fields.index(field) for field in field_names if field in self.fields
-        ]
-        stock_indices = [
-            self.stock_name.index(name)
-            for name in stock_names
-            if name in self.stock_name
-        ]
+        field_indices = self._resolve_requested_indices(field_names, self.fields, "fields")
+        stock_indices = self._resolve_requested_indices(stock_names, self.stock_name, "stocks")
 
         # indexing by dates
         prices = self.prices[start_idx : end_idx + 1]
@@ -115,6 +90,61 @@ class LoadStockData:
         prices = prices[:, :, np.array(stock_indices)]
 
         return dates, prices
+
+    def _get_field_indices(self, available_fields):
+        """Resolve requested fields against the CSV header order."""
+        indices = [available_fields.index(field) for field in self.fields if field in available_fields]
+
+        if len(indices) != len(self.fields):
+            missing_fields = [field for field in self.fields if field not in available_fields]
+            raise Exception(f"StockMarket.append(): missing fields {missing_fields}")
+
+        return indices
+
+    def _resolve_requested_indices(self, requested_names, available_names, label):
+        missing_names = [name for name in requested_names if name not in available_names]
+        if missing_names:
+            raise Exception(f"StockMarket.get_prices(): missing {label} {missing_names}")
+
+        return [available_names.index(name) for name in requested_names]
+
+    def _ensure_capacity(self, required_stocks):
+        if required_stocks <= self.max_no_stock:
+            return
+
+        new_capacity = max(self.max_no_stock * 2, required_stocks)
+        expanded = np.zeros(
+            (self.prices.shape[0], self.prices.shape[1], new_capacity), np.float32
+        )
+        expanded[:, :, : self.max_no_stock] = self.prices
+        self.prices = expanded
+        self.max_no_stock = new_capacity
+
+    def _align_prices_to_dates(self, source_dates, source_prices, market_name):
+        """
+        Align an auxiliary market to the primary market calendar by carrying
+        forward the latest available observation that is not later than the
+        target date.
+        """
+        valid_end_indices = np.argwhere(source_dates <= self.dates[-1])
+        if len(valid_end_indices) == 0:
+            raise Exception(
+                f"StockMarket.append(): {market_name} has no data on or before {int(self.dates[-1])}"
+            )
+
+        clipped_end = valid_end_indices[-1, 0] + 1
+        clipped_dates = source_dates[:clipped_end]
+        clipped_prices = source_prices[:clipped_end]
+
+        aligned_indices = np.searchsorted(clipped_dates, self.dates, side="right") - 1
+
+        if np.any(aligned_indices < 0):
+            raise Exception(
+                f"StockMarket.append(): {market_name} starts at {int(clipped_dates[0])}, "
+                f"which is later than the requested start date {int(self.dates[0])}"
+            )
+
+        return clipped_prices[aligned_indices]
 
     @classmethod
     def LoadCSVData(cls, filename):
