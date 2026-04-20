@@ -1,5 +1,65 @@
-model/*.txt
+# Python cache and tooling
 __pycache__/
 *.py[cod]
-tests/__pycache__/
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+__pypackages__/
+
+# IDE and editor state
+.vs/
+.vscode/
+.idea/
+*.code-workspace
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+
+# OS / temp files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Local secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# Python packaging / reports
+build/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Local runtime outputs
+broker_outbox/
+paper_trading/
+live_runs/
+
+# Project-specific local files
+model/*.txt
 README備份.md
