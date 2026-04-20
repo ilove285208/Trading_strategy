@@ -1,1 +1,5 @@
 model/*.txt
+__pycache__/
+*.py[cod]
+tests/__pycache__/
+README備份.md
