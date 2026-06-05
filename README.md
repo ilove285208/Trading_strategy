@@ -233,7 +233,24 @@ python paper_trade.py \
 
 ### 8. 實盤預覽 / 寫單骨架
 
+`live.py` 的角色是把模型訊號轉成 **target-position order**。  
+它會先讀取模型在指定日期的 `short / flat / long` 訊號，再和目前部位相比，計算出應該送出的 `target_quantity` 與 `delta_quantity`，最後交給 broker adapter 處理。
+
+這個流程適合被理解成一個 execution layer skeleton：
+
+- 負責把研究模型輸出轉成可執行訂單
+- 支援只預覽、不送單的檢查流程
+- 支援把下單責任交給外部 broker bridge / adapter
+
+每次執行都會額外輸出一份 live log：
+
+- `model/<run>/live/YYYYMMDD_live.json`
+
+裡面會保留本次使用的訊號、目前部位、目標部位、下單方向與 adapter 回傳結果，方便之後追蹤。
+
 #### Dry-run 預覽
+
+`dry-run` 適合用在正式串接券商之前，先驗證「模型訊號是否被正確翻譯成部位變化與訂單方向」。
 
 ```bash
 python live.py \
@@ -244,7 +261,23 @@ python live.py \
   --current-quantity 0
 ```
 
+重點如下：
+
+- `--current-quantity` 代表你手動告訴系統目前持倉數量
+- 系統會依照 `signal target` 與 `current_quantity` 計算 `delta_quantity`
+- 若沒有加上 `--execute`，只會做預覽，狀態會是 `preview_only`
+- 即使有加上 `--execute`，`dry-run` 也只會模擬送單，不會連任何外部券商
+- 適合用來檢查 `buy / sell / hold`、目標部位換算、`order_type` 與 `time_in_force` 是否符合預期
+
+這個模式的限制也很明確：
+
+- 持倉是透過 CLI 參數手動提供，不是從外部系統自動同步
+- 模擬結果只存在本次執行流程與輸出 log，不會幫你維護真實券商狀態
+- 比較適合部署前驗證、排查訊號轉單邏輯，或做人工覆核
+
 #### File broker 模式
+
+`file` broker 適合已經有自己的下單橋接程式、排程器或券商整合層，但不希望讓研究框架直接持有券商連線邏輯的情境。
 
 ```bash
 python live.py \
@@ -257,6 +290,50 @@ python live.py \
 ```
 
 這個模式不會直接連券商，而是把訂單指令寫成 JSON，方便外部 bridge / adapter 接手。
+
+運作方式如下：
+
+- 若未加 `--execute`，一樣只會預覽，不會寫出訂單檔
+- 加上 `--execute` 後，系統會把訂單指令寫到 `--order-outbox` 指定資料夾
+- 輸出檔名格式為 `<SYMBOL>-<UTC timestamp>.json`
+- adapter 狀態通常會是 `queued`，代表「已產生待外部處理的訂單指令」
+
+輸出的 JSON 會包含：
+
+- `symbol`
+- `target_quantity`
+- `current_quantity`
+- `delta_quantity`
+- `side`
+- `order_type`
+- `time_in_force`
+- `signal`
+
+如果你希望 `live.py` 不是靠人工輸入目前部位，而是從外部系統讀取，可搭配 `--broker-state-path` 提供 broker 狀態檔。  
+目前支援的格式例如：
+
+```json
+{
+  "positions": {
+    "TXF": {
+      "quantity": 1
+    }
+  }
+}
+```
+
+或更簡化地寫成：
+
+```json
+{
+  "positions": {
+    "TXF": 1
+  }
+}
+```
+
+這樣 `live.py` 就能先讀取目前部位，再決定本次應該寫出多少張數的調整單。  
+對外部系統來說，這種設計的好處是研究框架只負責「產生交易意圖」，真正的券商驗證、風控、簽核、送單與回報整合都可以留在你自己的 execution stack 中。
 
 ## 測試
 
@@ -275,24 +352,6 @@ python -m pytest tests/test_environment_alignment.py -q
 - `price state` 和 `cost state` 的 window 長度一致
 - `get_input_data(step)` 有包含當前 timestep
 - `action_execution()` 後的 `cost state` 仍對齊同一個 step
-
-## 已知限制
-
-- 目前主流程是 **日頻資料**，不是分鐘級或 tick 級框架
-- reward 仍是單位化報酬率版本，尚未納入完整資金管理、部位 sizing、保證金與合約乘數
-- `live.py` 是 broker-agnostic skeleton，預設只有 `dry-run` 與 `file` adapter
-- `noC` 基線版本還沒有完全同步到新版 reward 與驗證流程
-- 專案中仍保留不少 notebook 與歷史實驗輸出，研究味道比產品味道更重
-
-## Roadmap
-
-比較值得往下做的方向：
-
-1. 補 `requirements.txt` 或環境鎖定檔
-2. 補完整的 `train / validation / test / walk-forward` 實驗腳本
-3. 引入更完整的資金曲線與風險約束 reward
-4. 補 broker adapter 範例，例如 Shioaji / Interactive Brokers
-5. 補 CI 與更完整的單元測試 / 回歸測試
 
 ## 免責聲明
 
